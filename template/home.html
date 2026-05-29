@@ -1,0 +1,724 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  @keyframes fadeUp    { from { opacity:0; transform:translateY(28px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes fadeIn    { from { opacity:0; } to { opacity:1; } }
+  @keyframes floatY    { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-10px); } }
+  @keyframes spin      { to { transform:rotate(360deg); } }
+  @keyframes barGrow   { from { width:0; } }
+  @keyframes blink     { 0%,100%{opacity:1} 50%{opacity:0} }
+  @keyframes coinFloat { 0%{transform:translateY(0) rotate(0);opacity:.6} 100%{transform:translateY(-500px) rotate(270deg);opacity:0} }
+
+  /* ── HERO ── */
+  .hero-wrap {
+    display: grid;
+    grid-template-columns: 1fr 420px;
+    gap: 32px;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+  .hero-left { animation: fadeUp .65s ease both; }
+  .hero-tag {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--green-dim); color: var(--green-dark);
+    font-size: 12px; font-weight: 700;
+    padding: 5px 12px; border-radius: 99px;
+    margin-bottom: 22px; text-transform: uppercase; letter-spacing: .06em;
+  }
+  .hero-tag-dot { width:7px; height:7px; background:var(--green); border-radius:50%; animation: blink 1.6s ease infinite; }
+  .hero-left h1 {
+    font-size: 54px; font-weight: 900;
+    line-height: 1.05; letter-spacing: -2px;
+    margin-bottom: 20px; color: var(--ink);
+  }
+  .hero-left h1 .hl { color: var(--green); position:relative; }
+  .hero-left h1 .hl::after {
+    content: '';
+    position: absolute; left:0; bottom:-4px; width:100%; height:3px;
+    background: var(--green); border-radius:99px;
+  }
+  .hero-left p { font-size: 16px; color: var(--muted); line-height: 1.7; margin-bottom: 32px; max-width: 440px; font-weight: 400; }
+  .hero-cta { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .btn-hero { background: var(--ink); color: white; font-size: 15px; font-weight: 700; padding: 14px 28px; border-radius: 99px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: all .2s; font-family: 'Outfit', sans-serif; }
+  .btn-hero:hover { background: var(--green); color: var(--ink); transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,200,150,0.3); }
+  .btn-hero-ghost { background: transparent; color: var(--muted); font-size: 14px; font-weight: 600; padding: 14px 22px; border-radius: 99px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: all .2s; font-family: 'Outfit', sans-serif; border: 1.5px solid var(--border); }
+  .btn-hero-ghost:hover { border-color: var(--ink); color: var(--ink); }
+
+  /* ── HERO RIGHT — card stack ── */
+  .hero-right { position: relative; animation: fadeUp .8s ease both; }
+  .card-stack { position: relative; height: 420px; }
+  .stack-bg {
+    position: absolute; width: 320px; height: 180px;
+    border-radius: 20px; padding: 22px 24px;
+    font-weight: 700;
+  }
+  .stack-c1 {
+    background: var(--ink); color: white;
+    top: 0; left: 20px;
+    box-shadow: 0 20px 60px rgba(11,15,14,0.2);
+    animation: floatY 4s ease infinite;
+  }
+  .stack-c2 {
+    background: var(--green); color: var(--ink);
+    top: 140px; left: 60px;
+    box-shadow: 0 20px 60px rgba(0,200,150,0.25);
+    animation: floatY 4s ease infinite .8s;
+  }
+  .stack-c3 {
+    background: white; color: var(--ink);
+    top: 270px; left: 10px;
+    border: 1px solid var(--border);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.06);
+    animation: floatY 4s ease infinite 1.6s;
+    width: 340px;
+  }
+  .sc-label { font-size: 11px; font-weight: 600; opacity:.6; text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px; }
+  .sc-val   { font-size: 28px; font-weight: 900; letter-spacing:-1px; }
+  .sc-row   { display: flex; align-items: center; gap: 10px; }
+  .sc-icon  { width:36px; height:36px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+  .sc-info  { flex:1; }
+  .sc-name  { font-size: 13px; font-weight: 700; }
+  .sc-cat   { font-size: 11px; opacity:.5; }
+  .sc-amt   { font-size: 14px; font-weight: 800; }
+
+  /* floating emojis */
+  .floaters { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
+  .floater  { position:absolute; font-size:20px; animation: coinFloat linear infinite; opacity:0; }
+
+  /* ── MARQUEE CATEGORIES ── */
+  .marquee-wrap { overflow:hidden; margin-bottom:28px; }
+  @keyframes marquee { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+  .marquee-track { display:flex; gap:10px; animation: marquee 22s linear infinite; white-space:nowrap; }
+  .m-pill {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: white; border: 1px solid var(--border);
+    border-radius: 99px; padding: 7px 16px;
+    font-size: 13px; font-weight: 600; color: var(--ink);
+    flex-shrink: 0;
+  }
+
+  /* ── BENTO GRID ── */
+  .bento { display: grid; grid-template-columns: repeat(6, 1fr); grid-template-rows: auto; gap: 14px; margin-bottom: 28px; }
+  .bento-card { background: white; border-radius: 18px; border: 1px solid var(--border); padding: 24px; overflow: hidden; position: relative; transition: transform .2s, box-shadow .2s; }
+  .bento-card:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,0.08); }
+  .b1 { grid-column: span 3; }
+  .b2 { grid-column: span 3; }
+  .b3 { grid-column: span 2; }
+  .b4 { grid-column: span 2; }
+  .b5 { grid-column: span 2; }
+  .b6 { grid-column: span 6; background: var(--ink); color: white; }
+  .bento-icon { width:48px; height:48px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:22px; margin-bottom:16px; }
+  .bento-tag  { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); margin-bottom:8px; }
+  .bento-title { font-size:17px; font-weight:800; margin-bottom:8px; letter-spacing:-.3px; }
+  .bento-desc  { font-size:13px; color:var(--muted); line-height:1.6; }
+  .b6 .bento-desc { color:rgba(255,255,255,0.55); }
+  .b6 .bento-title { font-size:22px; }
+  .b6-inner { display:flex; align-items:center; justify-content:space-between; gap:20px; }
+
+  /* mini bar chart inside bento */
+  .mini-chart { display:flex; align-items:flex-end; gap:5px; height:60px; margin-top:14px; }
+  .mc-bar { width:18px; border-radius:5px 5px 0 0; background:var(--green); opacity:.25; transition:all .3s; }
+  .mc-bar.active { opacity:1; }
+  .mc-bar:hover { opacity:.8; cursor:pointer; }
+
+  /* spend ring */
+  .ring-wrap { position:relative; width:90px; height:90px; margin:12px auto 0; }
+  .ring-svg { transform:rotate(-90deg); }
+  .ring-bg   { fill:none; stroke:#EEF2F0; stroke-width:8; }
+  .ring-fill { fill:none; stroke:var(--green); stroke-width:8; stroke-linecap:round; stroke-dasharray:220; stroke-dashoffset:66; transition:stroke-dashoffset 1s ease; }
+  .ring-label { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:800; }
+
+  /* spend bars */
+  .spend-bar-list { display:flex; flex-direction:column; gap:10px; margin-top:14px; }
+  .sbl-row { display:flex; align-items:center; gap:10px; }
+  .sbl-dot  { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .sbl-name { font-size:12px; font-weight:600; flex:1; color:var(--ink); }
+  .sbl-track { width:80px; height:4px; background:#EEF2F0; border-radius:99px; overflow:hidden; }
+  .sbl-fill  { height:100%; border-radius:99px; animation: barGrow 1.2s ease both; }
+  .sbl-pct   { font-size:12px; font-weight:700; color:var(--muted); width:28px; text-align:right; }
+
+  /* ── HOW IT WORKS ── */
+  .how-wrap { background:white; border-radius:22px; border:1px solid var(--border); padding:40px; margin-bottom:28px; }
+  .how-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:24px; margin-top:32px; position:relative; }
+  .how-grid::before { content:''; position:absolute; top:22px; left:10%; right:10%; height:1px; border-top: 2px dashed var(--border); }
+  .how-step { text-align:center; position:relative; z-index:1; }
+  .how-num { width:44px; height:44px; background:var(--ink); border-radius:50%; color:white; font-size:16px; font-weight:800; display:flex; align-items:center; justify-content:center; margin:0 auto 16px; border:3px solid white; outline:1px solid var(--border); }
+  .how-step h4 { font-size:14px; font-weight:800; margin-bottom:5px; }
+  .how-step p  { font-size:12px; color:var(--muted); line-height:1.55; }
+
+  /* ── CTA ── */
+  .cta-block {
+    background: var(--ink);
+    border-radius: 22px;
+    padding: 64px 56px;
+    text-align: center;
+    color: white;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .cta-block::before {
+    content: '';
+    position: absolute;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(0,200,150,0.2) 0%, transparent 65%);
+    top: -100px; left: 50%; transform: translateX(-50%);
+    pointer-events: none;
+  }
+  .cta-block h2 { font-size:38px; font-weight:900; letter-spacing:-1.5px; margin-bottom:10px; position:relative; z-index:1; }
+  .cta-block h2 span { color:var(--green); }
+  .cta-block p  { font-size:15px; color:rgba(255,255,255,0.5); margin-bottom:32px; position:relative; z-index:1; }
+  .cta-block .cta-btns { display:flex; gap:12px; justify-content:center; position:relative; z-index:1; flex-wrap:wrap; }
+  .btn-cta-main { background:var(--green); color:var(--ink); font-size:15px; font-weight:800; padding:15px 32px; border-radius:99px; text-decoration:none; display:inline-flex; align-items:center; gap:8px; transition:all .2s; font-family:'Outfit',sans-serif; }
+  .btn-cta-main:hover { transform:translateY(-2px); box-shadow:0 10px 30px rgba(0,200,150,0.4); }
+  .btn-cta-ghost { background:rgba(255,255,255,0.07); color:rgba(255,255,255,0.7); border:1px solid rgba(255,255,255,0.15); font-size:14px; font-weight:600; padding:15px 28px; border-radius:99px; text-decoration:none; display:inline-flex; align-items:center; gap:8px; transition:all .2s; font-family:'Outfit',sans-serif; }
+  .btn-cta-ghost:hover { background:rgba(255,255,255,0.12); color:white; }
+
+  @media(max-width:900px) {
+    .hero-wrap { grid-template-columns:1fr; }
+    .card-stack, .hero-right { display:none; }
+    .bento { grid-template-columns:1fr 1fr; }
+    .b1,.b2,.b3,.b4,.b5 { grid-column:span 1; }
+    .b6 { grid-column:span 2; }
+    .how-grid { grid-template-columns:1fr 1fr; }
+    .how-grid::before { display:none; }
+  }
+  @media(max-width:560px) {
+    .hero-left h1 { font-size:38px; }
+    .bento { grid-template-columns:1fr; }
+    .b6 { grid-column:span 1; }
+    .cta-block { padding:40px 24px; }
+    .cta-block h2 { font-size:28px; }
+    .how-grid { grid-template-columns:1fr; }
+  }
+</style>
+
+<!-- ── HERO ── -->
+<div class="hero-wrap">
+  <div class="hero-left">
+    <div class="hero-tag"><div class="hero-tag-dot"></div> AI-Powered · Made for India</div>
+    <h1>Know exactly<br>where your<br><span class="hl">money goes</span></h1>
+    <p>SpendWise tracks every rupee — from Jio recharges to rent. AI categorizes your spends automatically so you never lose track again.</p>
+    <div class="hero-cta">
+      <a href="/register" class="btn-hero">Start for free <i class="bi bi-arrow-right"></i></a>
+      <a href="/login" class="btn-hero-ghost">Sign in <i class="bi bi-box-arrow-in-right"></i></a>
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <div class="card-stack">
+      <div class="floaters" id="floaters"></div>
+
+      <div class="stack-bg stack-c1">
+        <div class="sc-label">Total Balance</div>
+        <div class="sc-val">₹ 38,420</div>
+        <div style="margin-top:12px;display:flex;gap:6px;">
+          <div style="background:rgba(0,200,150,0.2);color:#00C896;font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px;">+12.4% this month</div>
+        </div>
+      </div>
+
+      <div class="stack-bg stack-c2">
+        <div class="sc-label">Monthly Budget Used</div>
+        <div class="sc-val">68%</div>
+        <div style="margin-top:10px;background:rgba(255,255,255,0.2);border-radius:99px;height:5px;overflow:hidden;">
+          <div style="width:68%;height:100%;background:var(--ink);border-radius:99px;"></div>
+        </div>
+      </div>
+
+      <div class="stack-bg stack-c3">
+        <div class="sc-row">
+          <div class="sc-icon" style="background:var(--green-dim);">📱</div>
+          <div class="sc-info">
+            <div class="sc-name">Jio Recharge</div>
+            <div class="sc-cat">Mobile Recharge · Just now</div>
+          </div>
+          <div class="sc-amt" style="color:var(--red);">−₹299</div>
+        </div>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
+          <div class="sc-row">
+            <div class="sc-icon" style="background:#FFF7ED;">🍕</div>
+            <div class="sc-info">
+              <div class="sc-name">Zomato Order</div>
+              <div class="sc-cat">Dining · 2h ago</div>
+            </div>
+            <div class="sc-amt" style="color:var(--red);">−₹486</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MARQUEE ── -->
+<div class="marquee-wrap">
+  <div class="marquee-track">
+    {% for item in ['🛒 Groceries','📱 Mobile Recharge','📺 DTH Recharge','⛽ Petrol','🚗 Transportation','💡 Utilities','🌐 Internet','🏠 Rent','🏦 EMI','🏥 Healthcare','📚 Education','🍕 Dining','🎬 Entertainment','🛍️ Shopping','🎉 Festival','📦 Other','🛒 Groceries','📱 Mobile Recharge','📺 DTH Recharge','⛽ Petrol','🚗 Transportation','💡 Utilities','🌐 Internet','🏠 Rent','🏦 EMI','🏥 Healthcare','📚 Education','🍕 Dining','🎬 Entertainment','🛍️ Shopping','🎉 Festival','📦 Other'] %}
+    <div class="m-pill">{{ item }}</div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ── MODAL ── -->
+<div id="modal-overlay" onclick="closeModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:1000;backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+  <div id="modal-box" onclick="event.stopPropagation()" style="background:white;border-radius:22px;padding:32px;max-width:520px;width:92%;max-height:88vh;overflow-y:auto;position:relative;animation:fadeUp .25s ease both;">
+    <button onclick="closeModal()" style="position:absolute;top:16px;right:16px;background:var(--bg);border:none;cursor:pointer;width:32px;height:32px;border-radius:50%;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--muted);">✕</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<!-- ── BENTO GRID ── -->
+<div class="bento">
+
+  <!-- AI Prediction -->
+  <div class="bento-card b1" onclick="openModal('ai')" style="cursor:pointer;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div class="bento-icon" style="background:var(--green-dim);color:var(--green-dark);margin-bottom:0;">🤖</div>
+      <div style="font-size:11px;color:var(--muted);background:var(--bg);padding:4px 10px;border-radius:99px;font-weight:600;">Click to try →</div>
+    </div>
+    <div style="margin-top:14px;">
+      <div class="bento-tag">AI Feature</div>
+      <div class="bento-title">Auto-categorization</div>
+      <div class="bento-desc">Type "Zomato" or "Jio recharge" — SpendWise instantly picks the right category. No manual work.</div>
+    </div>
+    <div style="margin-top:14px;background:var(--bg);border-radius:10px;padding:12px 14px;">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">You type:</div>
+      <div style="font-size:14px;font-weight:700;">jio fiber monthly</div>
+      <div style="margin-top:8px;display:flex;align-items:center;gap:6px;">
+        <div style="font-size:12px;color:var(--muted);">→ Predicted:</div>
+        <div style="background:var(--green-dim);color:var(--green-dark);font-size:12px;font-weight:700;padding:2px 10px;border-radius:99px;">🌐 Internet</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Spend breakdown -->
+  <div class="bento-card b2" onclick="openModal('analytics')" style="cursor:pointer;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div class="bento-icon" style="background:#FFF1F1;color:var(--red);margin-bottom:0;">📊</div>
+      <div style="font-size:11px;color:var(--muted);background:var(--bg);padding:4px 10px;border-radius:99px;font-weight:600;">Click to see →</div>
+    </div>
+    <div style="margin-top:14px;">
+      <div class="bento-tag">Analytics</div>
+      <div class="bento-title">Visual breakdown</div>
+      <div class="bento-desc">See exactly how your salary splits — category by category, month by month.</div>
+    </div>
+    <div class="spend-bar-list">
+      <div class="sbl-row"><div class="sbl-dot" style="background:#4F8EF7;"></div><div class="sbl-name">Rent</div><div class="sbl-track"><div class="sbl-fill" style="width:40%;background:#4F8EF7;"></div></div><div class="sbl-pct">40%</div></div>
+      <div class="sbl-row"><div class="sbl-dot" style="background:var(--green);"></div><div class="sbl-name">Food</div><div class="sbl-track"><div class="sbl-fill" style="width:22%;background:var(--green);"></div></div><div class="sbl-pct">22%</div></div>
+      <div class="sbl-row"><div class="sbl-dot" style="background:var(--amber);"></div><div class="sbl-name">Transport</div><div class="sbl-track"><div class="sbl-fill" style="width:12%;background:var(--amber);"></div></div><div class="sbl-pct">12%</div></div>
+      <div class="sbl-row"><div class="sbl-dot" style="background:var(--red);"></div><div class="sbl-name">Shopping</div><div class="sbl-track"><div class="sbl-fill" style="width:16%;background:var(--red);"></div></div><div class="sbl-pct">16%</div></div>
+    </div>
+  </div>
+
+  <!-- Budget alerts -->
+  <div class="bento-card b3" onclick="openModal('budget')" style="cursor:pointer;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div class="bento-icon" style="background:#FFFBEB;color:var(--amber);margin-bottom:0;">🔔</div>
+      <div style="font-size:11px;color:var(--muted);background:var(--bg);padding:4px 10px;border-radius:99px;font-weight:600;">Try →</div>
+    </div>
+    <div style="margin-top:14px;">
+      <div class="bento-tag">Alerts</div>
+      <div class="bento-title">Budget limits</div>
+      <div class="bento-desc">Set monthly caps. Get warned at 90% before you overspend.</div>
+    </div>
+    <div class="ring-wrap">
+      <svg class="ring-svg" viewBox="0 0 80 80" width="90" height="90">
+        <circle class="ring-bg" cx="40" cy="40" r="34"/>
+        <circle class="ring-fill" cx="40" cy="40" r="34"/>
+      </svg>
+      <div class="ring-label">72%</div>
+    </div>
+  </div>
+
+  <!-- Goals -->
+  <div class="bento-card b4" onclick="openModal('goals')" style="cursor:pointer;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div class="bento-icon" style="background:#F5F3FF;color:#7C3AED;margin-bottom:0;">🏆</div>
+      <div style="font-size:11px;color:var(--muted);background:var(--bg);padding:4px 10px;border-radius:99px;font-weight:600;">Try →</div>
+    </div>
+    <div style="margin-top:14px;">
+      <div class="bento-tag">Goals</div>
+      <div class="bento-title">Save smarter</div>
+      <div class="bento-desc">Set targets, track progress.</div>
+    </div>
+    <div style="margin-top:14px;">
+      <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:5px;">New Laptop</div>
+      <div style="background:#EEF2F0;border-radius:99px;height:6px;overflow:hidden;"><div style="width:62%;height:100%;background:#7C3AED;border-radius:99px;"></div></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;">₹37,200 / ₹60,000</div>
+    </div>
+    <div style="margin-top:10px;">
+      <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:5px;">Goa Trip</div>
+      <div style="background:#EEF2F0;border-radius:99px;height:6px;overflow:hidden;"><div style="width:34%;height:100%;background:var(--green);border-radius:99px;"></div></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;">₹8,500 / ₹25,000</div>
+    </div>
+  </div>
+
+  <!-- Prediction -->
+  <div class="bento-card b5" onclick="openModal('prediction')" style="cursor:pointer;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div class="bento-icon" style="background:#EFF6FF;color:var(--blue);margin-bottom:0;">🔮</div>
+      <div style="font-size:11px;color:var(--muted);background:var(--bg);padding:4px 10px;border-radius:99px;font-weight:600;">Try →</div>
+    </div>
+    <div style="margin-top:14px;">
+      <div class="bento-tag">Prediction</div>
+      <div class="bento-title">Next month</div>
+      <div class="bento-desc">AI forecasts your spend.</div>
+    </div>
+    <div class="mini-chart">
+      <div class="mc-bar" style="height:30%;"></div>
+      <div class="mc-bar" style="height:55%;"></div>
+      <div class="mc-bar" style="height:40%;"></div>
+      <div class="mc-bar" style="height:70%;"></div>
+      <div class="mc-bar" style="height:50%;"></div>
+      <div class="mc-bar active" style="height:65%;background:var(--blue);opacity:1;"></div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px;">Predicted: <strong style="color:var(--blue);">₹31,400</strong></div>
+  </div>
+
+  <!-- CTA bento -->
+  <div class="bento-card b6">
+    <div class="b6-inner">
+      <div>
+        <div class="bento-title">Secure by design 🔐</div>
+        <div class="bento-desc">Hashed passwords · CSRF protection · Rate-limited login · Your data never leaves your account.</div>
+      </div>
+      <div style="flex-shrink:0;">
+        <a href="/register" class="btn-cta-main" style="white-space:nowrap;">Start free →</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── HOW IT WORKS ── -->
+<div class="how-wrap">
+  <div class="section-tag">How it works</div>
+  <div style="font-size:24px;font-weight:900;letter-spacing:-.6px;margin-top:6px;">Up and running in 4 steps</div>
+  <div class="how-grid">
+    <div class="how-step">
+      <div class="how-num">1</div>
+      <h4>Create account</h4>
+      <p>Free signup — just a username and password. No card needed.</p>
+    </div>
+    <div class="how-step">
+      <div class="how-num">2</div>
+      <h4>Add transactions</h4>
+      <p>Describe the expense — AI picks the category for you instantly.</p>
+    </div>
+    <div class="how-step">
+      <div class="how-num">3</div>
+      <h4>Set your budgets</h4>
+      <p>Define monthly limits per category and get alerted before overspending.</p>
+    </div>
+    <div class="how-step">
+      <div class="how-num">4</div>
+      <h4>Track &amp; grow</h4>
+      <p>Charts, predictions, and savings goals — all in one clean dashboard.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ── CTA ── -->
+<div class="cta-block">
+  <h2>Ready to spend <span>wiser</span>?</h2>
+  <p>Join SpendWise — free forever, no credit card required.</p>
+  <div class="cta-btns">
+    <a href="/register" class="btn-cta-main"><i class="bi bi-rocket-takeoff-fill"></i> Create free account</a>
+    <a href="/login" class="btn-cta-ghost">Already a member? Sign in</a>
+  </div>
+</div>
+
+<script>
+  // ── MODAL DEMOS ──
+  const demos = {
+    ai: {
+      title: '🤖 AI Auto-categorization — Live Demo',
+      html: `
+        <p style="font-size:13px;color:#6B7C76;margin-bottom:20px;">Type any Indian transaction below and watch SpendWise predict the category instantly.</p>
+        <div style="position:relative;margin-bottom:16px;">
+          <input id="demo-input" type="text" placeholder="e.g. zomato order, jio recharge, uber ride..." style="width:100%;padding:12px 14px;border:1.5px solid #E2E8E5;border-radius:10px;font-size:14px;font-family:Outfit,sans-serif;outline:none;" oninput="runAIDemo(this.value)">
+        </div>
+        <div id="ai-result" style="background:#F5F7F6;border-radius:12px;padding:16px;min-height:60px;display:flex;align-items:center;gap:12px;">
+          <span style="font-size:13px;color:#6B7C76;">Start typing to see AI prediction...</span>
+        </div>
+        <div style="margin-top:16px;">
+          <div style="font-size:12px;font-weight:700;color:#6B7C76;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em;">Try these:</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;" id="quick-tries">
+            ${['jio recharge','zomato dinner','uber ride','bescom bill','netflix','hdfc emi','apollo hospital','bigbasket','dmart','byju subscription'].map(t=>`<button onclick="document.getElementById('demo-input').value='${t}';runAIDemo('${t}')" style="background:white;border:1px solid #E2E8E5;border-radius:99px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:Outfit,sans-serif;transition:all .15s;" onmouseover="this.style.borderColor='#00C896'" onmouseout="this.style.borderColor='#E2E8E5'">${t}</button>`).join('')}
+          </div>
+        </div>`
+    },
+    analytics: {
+      title: '📊 Spending Analytics — Demo',
+      html: `
+        <p style="font-size:13px;color:#6B7C76;margin-bottom:20px;">Drag the slider to simulate different spending scenarios and see how your breakdown changes.</p>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+          <span style="font-size:13px;font-weight:600;">Monthly salary:</span>
+          <input type="range" id="salary-slider" min="20000" max="150000" value="60000" step="5000" style="flex:1;" oninput="updateAnalytics(this.value)">
+          <span id="salary-val" style="font-size:14px;font-weight:800;color:#0B0F0E;min-width:80px;">₹60,000</span>
+        </div>
+        <div id="analytics-bars" style="display:flex;flex-direction:column;gap:12px;"></div>
+        <div id="analytics-summary" style="margin-top:16px;background:#F5F7F6;border-radius:10px;padding:14px;font-size:13px;"></div>`
+    },
+    budget: {
+      title: '🔔 Budget Alerts — Demo',
+      html: `
+        <p style="font-size:13px;color:#6B7C76;margin-bottom:20px;">Set a budget and drag the spend slider to see how SpendWise warns you.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+          <div>
+            <label style="font-size:12px;font-weight:700;color:#6B7C76;display:block;margin-bottom:6px;">Category</label>
+            <select id="budget-cat" style="width:100%;padding:9px 12px;border:1.5px solid #E2E8E5;border-radius:9px;font-family:Outfit,sans-serif;font-size:13px;outline:none;">
+              ${['Groceries','Dining','Shopping','Entertainment','Transport','Mobile Recharge'].map(c=>`<option>${c}</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:700;color:#6B7C76;display:block;margin-bottom:6px;">Budget limit (₹)</label>
+            <input type="number" id="budget-limit" value="5000" min="500" max="50000" step="500" style="width:100%;padding:9px 12px;border:1.5px solid #E2E8E5;border-radius:9px;font-family:Outfit,sans-serif;font-size:13px;outline:none;" oninput="updateBudget()">
+          </div>
+        </div>
+        <div style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:12px;font-weight:700;color:#6B7C76;">Amount spent:</span>
+          <span id="spent-val" style="font-size:14px;font-weight:800;">₹0</span>
+        </div>
+        <input type="range" id="spent-slider" min="0" max="5000" value="0" style="width:100%;margin-bottom:12px;" oninput="updateBudget()">
+        <div id="budget-bar-wrap" style="background:#EEF2F0;border-radius:99px;height:12px;overflow:hidden;margin-bottom:12px;">
+          <div id="budget-bar" style="height:100%;border-radius:99px;background:#00C896;width:0%;transition:all .3s;"></div>
+        </div>
+        <div id="budget-alert" style="border-radius:10px;padding:12px 14px;font-size:13px;font-weight:600;background:#F5F7F6;color:#6B7C76;">Set your budget above and drag the slider.</div>`
+    },
+    goals: {
+      title: '🏆 Savings Goals — Demo',
+      html: `
+        <p style="font-size:13px;color:#6B7C76;margin-bottom:20px;">Create a savings goal and simulate adding money to it.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+          <div>
+            <label style="font-size:12px;font-weight:700;color:#6B7C76;display:block;margin-bottom:6px;">Goal name</label>
+            <input type="text" id="goal-name" value="New iPhone" style="width:100%;padding:9px 12px;border:1.5px solid #E2E8E5;border-radius:9px;font-family:Outfit,sans-serif;font-size:13px;outline:none;" oninput="updateGoal()">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:700;color:#6B7C76;display:block;margin-bottom:6px;">Target (₹)</label>
+            <input type="number" id="goal-target" value="80000" min="1000" max="500000" step="1000" style="width:100%;padding:9px 12px;border:1.5px solid #E2E8E5;border-radius:9px;font-family:Outfit,sans-serif;font-size:13px;outline:none;" oninput="updateGoal()">
+          </div>
+        </div>
+        <div id="goal-display" style="background:#F5F7F6;border-radius:14px;padding:20px;margin-bottom:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <span id="gd-name" style="font-size:15px;font-weight:800;">New iPhone</span>
+            <span id="gd-pct" style="font-size:13px;font-weight:700;color:#00C896;">0%</span>
+          </div>
+          <div style="background:#E2E8E5;border-radius:99px;height:8px;overflow:hidden;margin-bottom:8px;">
+            <div id="goal-bar" style="height:100%;border-radius:99px;background:#00C896;width:0%;transition:width .4s;"></div>
+          </div>
+          <div id="gd-amounts" style="font-size:12px;color:#6B7C76;">₹0 saved of ₹80,000</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <input type="number" id="add-amount" placeholder="Add ₹ amount" value="5000" style="flex:1;padding:9px 12px;border:1.5px solid #E2E8E5;border-radius:9px;font-family:Outfit,sans-serif;font-size:13px;outline:none;">
+          <button onclick="addToGoal()" style="background:#0B0F0E;color:white;border:none;border-radius:99px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:Outfit,sans-serif;white-space:nowrap;">+ Add Money</button>
+        </div>
+        <div id="goal-msg" style="margin-top:10px;font-size:13px;font-weight:600;display:none;"></div>`
+    },
+    prediction: {
+      title: '🔮 Spending Prediction — Demo',
+      html: `
+        <p style="font-size:13px;color:#6B7C76;margin-bottom:20px;">Enter last 3 months spending and SpendWise predicts next month.</p>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;">
+          ${['January','February','March'].map((m,i)=>`
+          <div style="display:flex;align-items:center;gap:12px;">
+            <span style="font-size:13px;font-weight:600;width:80px;color:#6B7C76;">${m}</span>
+            <input type="range" min="10000" max="80000" value="${[32000,28000,35000][i]}" step="1000"
+              style="flex:1;" oninput="updatePrediction(this,${i})" id="pred-${i}">
+            <span id="pred-val-${i}" style="font-size:13px;font-weight:800;min-width:72px;text-align:right;">₹${[32000,28000,35000][i].toLocaleString('en-IN')}</span>
+          </div>`).join('')}
+        </div>
+        <div id="pred-result" style="background:#0B0F0E;border-radius:14px;padding:20px;color:white;text-align:center;">
+          <div style="font-size:12px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;">Predicted — April</div>
+          <div id="pred-amount" style="font-size:36px;font-weight:900;color:#00C896;letter-spacing:-1.5px;">₹31,667</div>
+          <div id="pred-note" style="font-size:12px;color:rgba(255,255,255,0.45);margin-top:6px;">Based on 3-month average</div>
+        </div>`
+    }
+  };
+
+  function openModal(key) {
+    const d = demos[key];
+    document.getElementById('modal-content').innerHTML =
+      `<div style="font-size:18px;font-weight:800;letter-spacing:-.4px;margin-bottom:6px;">${d.title}</div>${d.html}`;
+    const ov = document.getElementById('modal-overlay');
+    ov.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    // init interactive demos
+    if (key==='analytics') updateAnalytics(60000);
+    if (key==='budget')    updateBudget();
+    if (key==='goal')      updateGoal();
+    if (key==='prediction') { /* already set */ }
+  }
+
+  function closeModal() {
+    document.getElementById('modal-overlay').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+  document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
+
+  // ── AI demo ──
+  const rules = {
+    'Groceries':['grocery','sabzi','kirana','dmart','bigbasket','zepto','blinkit','reliance fresh','vegetables','milk'],
+    'Mobile Recharge':['jio','airtel','vi ','vodafone','bsnl','recharge','topup','prepaid','talktime'],
+    'DTH Recharge':['tata sky','dish tv','dth','tata play','d2h','cable'],
+    'Petrol':['petrol','diesel','fuel','hp ','bpcl','hpcl','iocl','cng','pump'],
+    'Transportation':['uber','ola','rapido','auto','metro','irctc','indigo','air india','bus','redbus'],
+    'Utilities':['electricity','bijli','bescom','mseb','water bill','lpg','cylinder','gas bill'],
+    'Internet':['fiber','broadband','wifi','jio fiber','airtel xstream','act ','hathway'],
+    'Rent':['rent','flat','pg ','hostel','apartment','room rent'],
+    'EMI':['emi','loan','hdfc','sbi','icici','axis','bajaj','installment'],
+    'Healthcare':['doctor','hospital','apollo','fortis','pharmacy','medicine','netmeds','1mg'],
+    'Education':['byju','unacademy','vedantu','coaching','tuition','college fees','school fees'],
+    'Dining':['zomato','swiggy','dominos','kfc','mcdonald','pizza','restaurant','cafe','ccd','starbucks'],
+    'Entertainment':['netflix','amazon prime','hotstar','zee5','sonyliv','pvr','inox','spotify','bookmyshow'],
+    'Shopping':['amazon','flipkart','myntra','ajio','nykaa','meesho','snapdeal','reliance digital'],
+    'Festival':['diwali','holi','eid','christmas','puja','rakhi','wedding'],
+  };
+  const catColors = {'Groceries':'#22C55E','Mobile Recharge':'#4F8EF7','DTH Recharge':'#7C3AED','Petrol':'#F97316','Transportation':'#0284C7','Utilities':'#D97706','Internet':'#0891B2','Rent':'#9333EA','EMI':'#DC2626','Healthcare':'#059669','Education':'#0284C7','Dining':'#EA580C','Entertainment':'#7C3AED','Shopping':'#D97706','Festival':'#F59E0B','Other':'#6B7C76'};
+  const catEmoji  = {'Groceries':'🛒','Mobile Recharge':'📱','DTH Recharge':'📺','Petrol':'⛽','Transportation':'🚗','Utilities':'💡','Internet':'🌐','Rent':'🏠','EMI':'🏦','Healthcare':'🏥','Education':'📚','Dining':'🍕','Entertainment':'🎬','Shopping':'🛍️','Festival':'🎉','Other':'📦'};
+
+  let aiTimer;
+  function runAIDemo(val) {
+    clearTimeout(aiTimer);
+    const box = document.getElementById('ai-result');
+    if (!val.trim()) { box.innerHTML = '<span style="font-size:13px;color:#6B7C76;">Start typing to see AI prediction...</span>'; return; }
+    box.innerHTML = '<span style="font-size:13px;color:#6B7C76;">Analysing...</span>';
+    aiTimer = setTimeout(() => {
+      const v = val.toLowerCase();
+      let cat = 'Other';
+      for (const [c, kws] of Object.entries(rules)) {
+        if (kws.some(k => v.includes(k))) { cat = c; break; }
+      }
+      const col = catColors[cat]; const em = catEmoji[cat];
+      box.innerHTML = `
+        <div style="display:flex;align-items:center;gap:14px;width:100%;">
+          <div style="width:44px;height:44px;border-radius:12px;background:${col}22;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">${em}</div>
+          <div style="flex:1;">
+            <div style="font-size:11px;color:#6B7C76;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">Predicted category</div>
+            <div style="font-size:18px;font-weight:800;color:#0B0F0E;">${cat}</div>
+          </div>
+          <div style="background:${col}22;color:${col};font-size:12px;font-weight:700;padding:4px 12px;border-radius:99px;">97% confidence</div>
+        </div>`;
+    }, 400);
+  }
+
+  // ── Analytics demo ──
+  const cats2 = [['🏠','Rent','#4F8EF7',.40],['🍕','Food','#00C896',.22],['🚗','Transport','#FFB020',.12],['🛍️','Shopping','#FF4D4D',.16],['📱','Recharge','#7C3AED',.06],['📦','Other','#9CA3AF',.04]];
+  function updateAnalytics(sal) {
+    sal = parseInt(sal);
+    document.getElementById('salary-val').textContent = '₹' + sal.toLocaleString('en-IN');
+    const slider = document.getElementById('spent-slider');
+    if (slider) slider.max = sal;
+    const bars = cats2.map(([em,name,col,pct]) => {
+      const amt = Math.round(sal * pct);
+      return `<div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:15px;width:20px;">${em}</span>
+        <span style="font-size:13px;font-weight:600;width:72px;color:#0B0F0E;">${name}</span>
+        <div style="flex:1;background:#EEF2F0;border-radius:99px;height:8px;overflow:hidden;">
+          <div style="width:${pct*100}%;height:100%;background:${col};border-radius:99px;animation:barGrow 0.8s ease both;"></div>
+        </div>
+        <span style="font-size:12px;font-weight:700;color:#6B7C76;width:56px;text-align:right;">₹${amt.toLocaleString('en-IN')}</span>
+      </div>`;
+    }).join('');
+    document.getElementById('analytics-bars').innerHTML = bars;
+    const saved = Math.round(sal * 0.04);
+    document.getElementById('analytics-summary').innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:13px;color:#6B7C76;">💰 Estimated savings this month</span>
+        <span style="font-size:16px;font-weight:900;color:#00C896;">₹${saved.toLocaleString('en-IN')}</span>
+      </div>`;
+  }
+
+  // ── Budget demo ──
+  function updateBudget() {
+    const limit = parseInt(document.getElementById('budget-limit')?.value||5000);
+    const slider = document.getElementById('spent-slider');
+    if (slider) slider.max = limit;
+    const spent = parseInt(slider?.value||0);
+    const pct   = Math.min((spent/limit)*100, 100);
+    document.getElementById('spent-val').textContent = '₹' + spent.toLocaleString('en-IN');
+    const bar = document.getElementById('budget-bar');
+    const alert = document.getElementById('budget-alert');
+    if (!bar) return;
+    bar.style.width = pct + '%';
+    if (pct >= 100) {
+      bar.style.background = '#FF4D4D';
+      alert.style.background = '#FFF1F1'; alert.style.color = '#991B1B';
+      alert.innerHTML = '🚨 <strong>Budget exceeded!</strong> You have spent ₹' + (spent-limit).toLocaleString('en-IN') + ' over your limit.';
+    } else if (pct >= 90) {
+      bar.style.background = '#FFB020';
+      alert.style.background = '#FFFBEB'; alert.style.color = '#92400E';
+      alert.innerHTML = '⚠️ <strong>Warning!</strong> You\'ve used ' + pct.toFixed(0) + '% of your budget. Only ₹' + (limit-spent).toLocaleString('en-IN') + ' left.';
+    } else if (pct >= 50) {
+      bar.style.background = '#00C896';
+      alert.style.background = '#E6FAF5'; alert.style.color = '#00A07A';
+      alert.innerHTML = '✅ On track. ₹' + (limit-spent).toLocaleString('en-IN') + ' remaining (' + (100-pct).toFixed(0) + '% left).';
+    } else {
+      bar.style.background = '#00C896';
+      alert.style.background = '#F5F7F6'; alert.style.color = '#6B7C76';
+      alert.innerHTML = '👍 Good — only ' + pct.toFixed(0) + '% used. ₹' + (limit-spent).toLocaleString('en-IN') + ' remaining.';
+    }
+  }
+
+  // ── Goals demo ──
+  let goalSaved = 0;
+  function updateGoal() {
+    const name   = document.getElementById('goal-name')?.value || 'Goal';
+    const target = parseInt(document.getElementById('goal-target')?.value||80000);
+    const pct    = Math.min((goalSaved/target)*100,100);
+    document.getElementById('gd-name').textContent = name;
+    document.getElementById('gd-pct').textContent  = pct.toFixed(0) + '%';
+    document.getElementById('goal-bar').style.width = pct + '%';
+    document.getElementById('gd-amounts').textContent = '₹' + goalSaved.toLocaleString('en-IN') + ' saved of ₹' + target.toLocaleString('en-IN');
+  }
+  function addToGoal() {
+    const amt    = parseInt(document.getElementById('add-amount')?.value||0);
+    const target = parseInt(document.getElementById('goal-target')?.value||80000);
+    if (amt <= 0) return;
+    goalSaved = Math.min(goalSaved + amt, target);
+    updateGoal();
+    const msg = document.getElementById('goal-msg');
+    msg.style.display = 'block';
+    if (goalSaved >= target) {
+      msg.style.color = '#00A07A'; msg.style.background = '#E6FAF5';
+      msg.style.padding = '10px 14px'; msg.style.borderRadius = '8px';
+      msg.textContent = '🎉 Goal achieved! Congratulations!';
+    } else {
+      msg.style.color = '#6B7C76'; msg.style.background = 'transparent'; msg.style.padding = '0';
+      msg.textContent = '✅ ₹' + amt.toLocaleString('en-IN') + ' added successfully!';
+    }
+  }
+
+  // ── Prediction demo ──
+  let predVals = [32000, 28000, 35000];
+  function updatePrediction(el, idx) {
+    predVals[idx] = parseInt(el.value);
+    document.getElementById('pred-val-'+idx).textContent = '₹' + predVals[idx].toLocaleString('en-IN');
+    const avg = Math.round(predVals.reduce((a,b)=>a+b,0)/3);
+    document.getElementById('pred-amount').textContent = '₹' + avg.toLocaleString('en-IN');
+    const trend = predVals[2] > predVals[0] ? '📈 Spending trending up' : predVals[2] < predVals[0] ? '📉 Spending trending down — great!' : '📊 Spending is stable';
+    document.getElementById('pred-note').textContent = trend;
+  }
+
+  // ── Floating coins ──
+  const emojis = ['💰','🪙','💵','💳','📈','₹'];
+  const wrap   = document.getElementById('floaters');
+  function spawnFloat() {
+    if (!wrap) return;
+    const el = document.createElement('div');
+    el.className = 'floater';
+    el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    el.style.left   = Math.random() * 90 + '%';
+    el.style.bottom = '-30px';
+    const dur = 5 + Math.random() * 4;
+    el.style.animationDuration  = dur + 's';
+    el.style.animationDelay     = Math.random() * 2 + 's';
+    el.style.fontSize = (14 + Math.random() * 12) + 'px';
+    el.style.opacity  = 0.4 + Math.random() * 0.3;
+    wrap.appendChild(el);
+    setTimeout(() => el.remove(), (dur + 3) * 1000);
+  }
+  for (let i = 0; i < 5; i++) setTimeout(spawnFloat, i * 600);
+  setInterval(spawnFloat, 1500);
+</script>
+{% endblock %}
