@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-title">Welcome, {{ current_user.username }}!
+</div>
+
+{% if alerts %}
+  {% for alert in alerts %}
+  <div class="alert alert-warning">
+    Warning: {{ alert.category }} — spent ₹{{ alert.spent|indian_currency }} of ₹{{ alert.budget|indian_currency }} budget ({{ alert.percentage|round(1) }}%)
+  </div>
+  {% endfor %}
+{% endif %}
+
+<!-- Stats -->
+<div class="grid-4" style="margin-bottom:20px;">
+  <div class="stat-card">
+    <div class="label">Total Income</div>
+    <div class="value income">₹{{ stats.total_income|indian_currency }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Total Expenses</div>
+    <div class="value expense">₹{{ stats.total_expenses|indian_currency }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Balance</div>
+    <div class="value balance">₹{{ stats.balance|indian_currency }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Transactions</div>
+    <div class="value">{{ stats.transaction_count }}</div>
+  </div>
+</div>
+
+<!-- Predictions -->
+<div class="grid-2" style="margin-bottom:20px;">
+  <div class="stat-card">
+    <div class="label">Next Month Prediction</div>
+    <div class="value expense">₹{{ next_month_prediction|indian_currency }}</div>
+    <div style="font-size:12px; color:#aaa; margin-top:4px;">Based on last 3 months avg</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Suggested Savings</div>
+    <div class="value income">₹{{ savings_suggestion|indian_currency }}</div>
+    <div style="font-size:12px; color:#aaa; margin-top:4px;">20% of current balance</div>
+  </div>
+</div>
+
+<!-- Charts -->
+<div class="grid-2" style="margin-bottom:20px;">
+  <div class="card">
+    <h3 style="font-size:15px; font-weight:600; margin-bottom:16px;">Spending by Category</h3>
+    <canvas id="pieChart" height="220"></canvas>
+  </div>
+  <div class="card">
+    <h3 style="font-size:15px; font-weight:600; margin-bottom:16px;">Monthly Trend</h3>
+    <canvas id="barChart" height="220"></canvas>
+  </div>
+</div>
+
+<div class="grid-2">
+  <!-- Recent Transactions -->
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <h3 style="font-size:15px; font-weight:600;">Recent Transactions</h3>
+      <a href="/add_transaction" class="btn btn-primary" style="padding:6px 14px; font-size:13px;">+ Add</a>
+    </div>
+    {% if transactions %}
+    <table>
+      <thead><tr><th>Description</th><th>Category</th><th>Amount</th><th></th></tr></thead>
+      <tbody>
+        {% for t in transactions %}
+        <tr>
+          <td>{{ t.description or '—' }}</td>
+          <td><span class="badge badge-{{ t.type }}">{{ t.category }}</span></td>
+          <td class="{{ t.type }}">{% if t.type=='expense' %}-{% endif %}₹{{ t.amount|indian_currency }}</td>
+          <td>
+            <form method="POST" action="/delete_transaction/{{ t.id }}" style="display:inline;">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-danger" style="padding:4px 10px; font-size:12px;"
+                onclick="return confirm('Delete?')">✕</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p style="color:#aaa; font-size:14px; text-align:center; padding:20px 0;">No transactions yet. <a href="/add_transaction" style="color:#1a73e8;">Add one!</a></p>
+    {% endif %}
+  </div>
+
+  <!-- Goals -->
+  <div class="card">
+    <h3 style="font-size:15px; font-weight:600; margin-bottom:16px;">Savings Goals</h3>
+    {% if goals %}
+      {% for goal in goals %}
+      <div style="margin-bottom:16px;">
+        <div style="display:flex; justify-content:space-between; font-size:14px; margin-bottom:6px;">
+          <span style="font-weight:500;">{{ goal.name }}</span>
+          <span style="color:#888;">₹{{ goal.current_amount|indian_currency }} / ₹{{ goal.target_amount|indian_currency }}</span>
+        </div>
+        {% set pct = (goal.current_amount / goal.target_amount * 100) if goal.target_amount > 0 else 0 %}
+        <div style="background:#f0f0f0; border-radius:8px; height:8px;">
+          <div style="background:#1a73e8; width:{{ [pct,100]|min }}%; height:8px; border-radius:8px;"></div>
+        </div>
+        {% if goal.deadline %}
+        <div style="font-size:12px; color:#aaa; margin-top:4px;">Deadline: {{ goal.deadline.strftime('%d %b %Y') }}</div>
+        {% endif %}
+        <form method="POST" action="/update_goal/{{ goal.id }}" style="display:flex; gap:8px; margin-top:8px;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="number" name="amount" placeholder="Add amount" min="1" step="any" style="flex:1; padding:6px 10px;">
+          <button type="submit" class="btn btn-success" style="padding:6px 14px; font-size:13px;">Add</button>
+        </form>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p style="color:#aaa; font-size:14px; text-align:center; padding:10px 0;">No goals yet.</p>
+    {% endif %}
+
+    <hr style="margin:16px 0; border:none; border-top:1px solid #f0f0f0;">
+    <h4 style="font-size:14px; font-weight:600; margin-bottom:12px;">Add New Goal</h4>
+    <form method="POST" action="/add_goal">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group">
+        <input type="text" name="name" placeholder="Goal name (e.g. New Phone)" required>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <input type="number" name="target_amount" placeholder="Target ₹" min="1" step="any" required>
+        </div>
+        <div class="form-group">
+          <input type="date" name="deadline">
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%; padding:10px;">Create Goal</button>
+    </form>
+  </div>
+</div>
+
+<!-- Budget quick-add -->
+<div class="card" style="margin-top:20px;">
+  <h3 style="font-size:15px; font-weight:600; margin-bottom:16px;">Set Monthly Budget</h3>
+  <form method="POST" action="/add_budget" style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div style="flex:1; min-width:150px;">
+      <label>Category</label>
+      <select name="category">
+        {% for cat in ['Groceries','Mobile Recharge','DTH Recharge','Petrol','Transportation','Utilities','Internet','Rent','EMI','Healthcare','Education','Dining','Entertainment','Shopping','Festival','Other'] %}
+        <option>{{ cat }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div style="flex:1; min-width:120px;">
+      <label>Budget Amount (₹)</label>
+      <input type="number" name="amount" placeholder="e.g. 5000" min="1" step="any" required>
+    </div>
+    <button type="submit" class="btn btn-primary" style="padding:10px 20px;">Set Budget</button>
+  </form>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+async function loadCharts() {
+  const pieRes = await fetch('/api/category_spending');
+  const pieData = await pieRes.json();
+
+  const barRes = await fetch('/api/monthly_trend');
+  const barData = await barRes.json();
+
+  const colors = ['#1a73e8','#2e7d32','#e53935','#f57c00','#7b1fa2','#0097a7','#c62828','#558b2f','#283593','#ad1457','#4e342e','#37474f','#00695c','#ff6f00','#1565c0','#6a1b9a'];
+
+  new Chart(document.getElementById('pieChart'), {
+    type: 'doughnut',
+    data: {
+      labels: pieData.categories.length ? pieData.categories : ['No data'],
+      datasets: [{ data: pieData.amounts.length ? pieData.amounts : [1], backgroundColor: colors }]
+    },
+    options: { plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } } }
+  });
+
+  new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: {
+      labels: barData.months.length ? barData.months : ['No data'],
+      datasets: [{ label: 'Expenses (₹)', data: barData.amounts.length ? barData.amounts : [0], backgroundColor: '#1a73e8', borderRadius: 6 }]
+    },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+  });
+}
+loadCharts();
+</script>
+{% endblock %}
