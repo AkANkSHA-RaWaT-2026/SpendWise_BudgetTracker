@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">Monthly Budgets</div>
+
+<div class="card">
+  {% if budgets %}
+  <table>
+    <thead><tr><th>Category</th><th>Budget</th><th>Month</th></tr></thead>
+    <tbody>
+      {% for b in budgets %}
+      <tr>
+        <td>{{ b.category }}</td>
+        <td>₹{{ b.amount|indian_currency }}</td>
+        <td>{{ b.month }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:#aaa; text-align:center; padding:20px 0;">No budgets set for this month. Add one from the dashboard.</p>
+  {% endif %}
+</div>
+
+<a href="/dashboard" class="btn btn-outline">← Back to Dashboard</a>
+{% endblock %}
