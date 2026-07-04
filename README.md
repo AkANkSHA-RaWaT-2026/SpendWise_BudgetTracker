@@ -70,13 +70,23 @@ pip install -r requirements.txt
 
 ### 4. Configure environment variables
 
-Create a `.env` file in the project root and set a secret key:
+Create a `.env` file in the project root and set a secret key.
+
+Generate a secure key using Python's `secrets` module (not `random`, which is predictable and unsuitable for security purposes):
+
+```bash
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+This prints a random 64-character hex string. Copy it into your `.env` file:
 
 ```env
-SECRET_KEY=your_secret_key_here
+SECRET_KEY=paste_the_generated_value_here
 ```
 
 `SECRET_KEY` is required by Flask-WTF/Flask-Login to sign session cookies and CSRF tokens securely — the app will not run safely without one.
+
+> **Never commit this value to GitHub.** Generate it once per project (not per run, or existing user sessions will be invalidated), and keep it only in your local `.env` file, which should already be excluded via `.gitignore`.
 
 ### 5. Train the ML model
 
@@ -98,8 +108,5 @@ python app.py
 deactivate
 ```
 
----
 
 
-**Akanksha Rawat**
-B.Tech CSE (AI/ML), Aravali College of Engineering and Management, Faridabad
