@@ -2,8 +2,6 @@
 
 A web-based budget tracking app with ML-powered transaction categorisation, built for Indian UPI and bank transactions.
 
-Built as part of a B.Tech CSE (AI/ML) project at Aravali College of Engineering and Management, Faridabad (Jan–Jul 2026).
-
 ---
 
 ## What It Does
