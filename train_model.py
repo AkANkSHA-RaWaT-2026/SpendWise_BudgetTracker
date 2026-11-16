@@ -1,3 +1,9 @@
+"""
+train_model.py
+Trains the SpendWise transaction category classifier and saves it to
+category_model.pkl. Run this script directly:  python train_model.py
+"""
+
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import MultinomialNB
@@ -9,7 +15,7 @@ import joblib
 MODEL_VERSION = "1.3"
 
 # ---------------------------------------------------------------------------
-# Expense training data — 16 categories
+# Expense training data (16 categories)
 # ---------------------------------------------------------------------------
 
 TRAINING_DATA = [
@@ -31,7 +37,7 @@ TRAINING_DATA = [
     ("daily essentials grocery store", "Groceries"),
     ("rice dal atta grocery purchase", "Groceries"),
     ("fresh produce grocery market", "Groceries"),
-    # — distinct from airtel fiber (Internet) and airtel dth (DTH Recharge)
+    # distinct from airtel fiber (Internet) and airtel dth (DTH Recharge)
     ("jio prepaid recharge 239 plan", "Mobile Recharge"),
     ("airtel mobile prepaid recharge 299", "Mobile Recharge"),
     ("airtel postpaid mobile bill payment", "Mobile Recharge"),
@@ -86,7 +92,7 @@ TRAINING_DATA = [
     ("vehicle fuel fill monthly", "Petrol"),
     ("petrol diesel fill station", "Petrol"),
     ("cng petrol hybrid fuel fill", "Petrol"),
-    # Added strong transport context words so ticket alone doesn't confuse.
+    # transport context words so ticket alone doesn't confuse
     ("uber cab ride booking", "Transportation"),
     ("ola cab ride city", "Transportation"),
     ("rapido bike taxi ride", "Transportation"),
@@ -233,7 +239,7 @@ TRAINING_DATA = [
     ("south indian breakfast restaurant", "Dining"),
     ("food delivery online order dinner", "Dining"),
     ("restaurant dining bill payment", "Dining"),
-    # Added movie/event context to all cinema entries
+    # movie/event context added to cinema entries
     ("netflix monthly streaming subscription", "Entertainment"),
     ("amazon prime video annual subscription", "Entertainment"),
     ("disney plus hotstar premium streaming", "Entertainment"),
@@ -252,8 +258,8 @@ TRAINING_DATA = [
     ("apple tv plus streaming subscription", "Entertainment"),
     ("movie ticket online booking cinema", "Entertainment"),
     ("web series streaming subscription", "Entertainment"),
-    
-    ("amazon india product purchase order", "Shopping"),         
+
+    ("amazon india product purchase order", "Shopping"),
     ("amazon shopping delivery order", "Shopping"),
     ("flipkart big billion sale order", "Shopping"),
     ("myntra fashion clothing order", "Shopping"),
@@ -289,7 +295,7 @@ TRAINING_DATA = [
     ("festival season shopping celebration", "Festival"),
     ("pooja samagri festival purchase", "Festival"),
     ("festive occasion gift giving", "Festival"),
-    
+
     ("gym fitness membership monthly fee", "Other"),
     ("salon haircut grooming charges", "Other"),
     ("laundry service monthly clothes", "Other"),
@@ -311,7 +317,7 @@ TRAINING_DATA = [
 ]
 
 # ---------------------------------------------------------------------------
-# Income training data — 9 categories 
+# Income training data (9 categories)
 # ---------------------------------------------------------------------------
 
 INCOME_TRAINING_DATA = [
@@ -442,8 +448,13 @@ INCOME_TRAINING_DATA = [
     ("affiliate marketing income payout", "Other Income"),
 ]
 
+
+# ---------------------------------------------------------------------------
+# Data preparation
+# ---------------------------------------------------------------------------
+
 def generate_augmented_data():
-    """Add UPI and NEFT prefix variants to training data."""
+    """Add UPI, NEFT, and 'payment' variants to every training example."""
     all_data = TRAINING_DATA + INCOME_TRAINING_DATA
     augmented = []
     for desc, category in all_data:
@@ -452,51 +463,57 @@ def generate_augmented_data():
         augmented.append((f"neft {desc}", category))
     return all_data + augmented
 
+
+# ---------------------------------------------------------------------------
+# Training
+# ---------------------------------------------------------------------------
+
 def train_model():
+    """Train the classifier, evaluate it, and save the model bundle."""
     print("Training SpendWise ML model...")
 
     data = generate_augmented_data()
     print(f"\nTotal samples : {len(data)}")
     print(f"Categories    : {len(set(c for _, c in data))}")
 
-    df = pd.DataFrame(data, columns=['description', 'category'])
+    df = pd.DataFrame(data, columns=["description", "category"])
     print("\nCategory distribution:")
-    print(df['category'].value_counts().to_string())
+    print(df["category"].value_counts().to_string())
 
     X_train, X_test, y_train, y_test = train_test_split(
-        df['description'], df['category'],
-        test_size=0.2, random_state=42, stratify=df['category']
+        df["description"], df["category"],
+        test_size=0.2, random_state=42, stratify=df["category"]
     )
     print(f"\nTraining : {len(X_train)}  |  Testing : {len(X_test)}")
 
     pipeline = Pipeline([
-        ('tfidf', TfidfVectorizer(
-            max_features=1500,      
+        ("tfidf", TfidfVectorizer(
+            max_features=1500,
             ngram_range=(1, 2),
             min_df=1,
             sublinear_tf=True,
         )),
-        ('clf', MultinomialNB(alpha=0.3)),  
+        ("clf", MultinomialNB(alpha=0.3)),
     ])
 
     print("\nTraining model ...")
     pipeline.fit(X_train, y_train)
 
-    y_pred   = pipeline.predict(X_test)
+    y_pred = pipeline.predict(X_test)
     accuracy = accuracy_score(y_test, y_pred)
     print(f"\nAccuracy : {accuracy * 100:.2f}%")
     print("\nClassification report:")
     print(classification_report(y_test, y_pred))
 
     bundle = {
-        'version':    MODEL_VERSION,
-        'pipeline':   pipeline,
-        'categories': sorted(df['category'].unique().tolist()),
+        "version":    MODEL_VERSION,
+        "pipeline":   pipeline,
+        "categories": sorted(df["category"].unique().tolist()),
     }
-    joblib.dump(bundle, 'category_model.pkl')
+    joblib.dump(bundle, "category_model.pkl")
     print(f"\nModel bundle v{MODEL_VERSION} saved as 'category_model.pkl'")
 
-    # Smoke test — specifically targets the previously misclassifying cases
+    # Smoke test: spot-check cases that were previously misclassified
     test_cases = [
         ("airtel mobile prepaid recharge",       "Mobile Recharge"),
         ("airtel postpaid mobile bill",          "Mobile Recharge"),
@@ -537,18 +554,28 @@ def train_model():
         ("cashback credited paytm wallet",       "Other Income"),
     ]
 
-    print("\nSample predictions (expected → got):")
-    
+    print("\nSample predictions (expected vs got):")
+
     correct = 0
     for desc, expected in test_cases:
         pred = pipeline.predict([desc])[0]
         conf = max(pipeline.predict_proba([desc])[0]) * 100
-        status = "✓" if pred == expected else "✗"
+        status = "OK  " if pred == expected else "FAIL"
         if pred == expected:
             correct += 1
-        print(f"  {status}  '{desc}'")
-        print(f"      Expected: {expected}  |  Got: {pred} ({conf:.1f}%)")
+        print(f"  [{status}] '{desc}'")
+        print(f"          Expected: {expected}  |  Got: {pred} ({conf:.1f}%)")
 
     print(f"\nSmoke test: {correct}/{len(test_cases)} correct")
     print("\n" + "=" * 55)
     print("Training complete.")
+
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+
+# Run training only when this file is executed directly
+# (python train_model.py), not when it's imported by another file.
+if __name__ == "__main__":
+    train_model()

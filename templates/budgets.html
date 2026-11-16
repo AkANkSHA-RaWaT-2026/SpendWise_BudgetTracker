@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">Monthly Budgets</div>
+
+<div class="card">
+  {% if rows %}
+  <table>
+    <thead>
+      <tr><th>Category</th><th>Spent</th><th>Budget</th><th style="width:35%">Progress</th></tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      {% set bar_color = 'var(--red)' if r.pct >= 100 else ('var(--amber)' if r.pct >= 90 else 'var(--green)') %}
+      <tr>
+        <td>{{ r.category }}</td>
+        <td>₹{{ r.spent|indian_currency }}</td>
+        <td>₹{{ r.budget|indian_currency }}</td>
+        <td>
+          <div class="progress">
+            <div class="progress-bar" style="width: {{ [r.pct, 100]|min|round(1) }}%; background: {{ bar_color }};"></div>
+          </div>
+          <div style="font-size:12px; color:var(--muted); margin-top:4px;">
+            {{ r.pct|round(1) }}% used ·
+            {% if r.spent > r.budget %}
+              <span class="text-expense">over by ₹{{ (r.spent - r.budget)|indian_currency }}</span>
+            {% else %}
+              ₹{{ (r.budget - r.spent)|indian_currency }} left
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:var(--muted); text-align:center; padding:20px 0;">No budgets set for this month. Add one from the dashboard.</p>
+  {% endif %}
+</div>
+
+<a href="/dashboard" class="btn btn-outline">← Back to Dashboard</a>
+{% endblock %}

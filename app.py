@@ -58,10 +58,25 @@ limiter = Limiter(
 )
 
 # ---------------------------------------------------------------------------
+# Categories (single source of truth for the Python side)
+# ---------------------------------------------------------------------------
+
+EXPENSE_CATEGORIES = [
+    'Groceries', 'Mobile Recharge', 'DTH Recharge', 'Petrol', 'Transportation',
+    'Utilities', 'Internet', 'Rent', 'EMI', 'Healthcare', 'Education', 'Dining',
+    'Entertainment', 'Shopping', 'Festival', 'Other',
+]
+
+INCOME_CATEGORIES = [
+    'Salary', 'Freelance', 'Business Income', 'Rental Income', 'Interest & Returns',
+    'Dividends', 'Bonus', 'Reimbursement', 'Other Income',
+]
+
+# ---------------------------------------------------------------------------
 # ML model loading
 # ---------------------------------------------------------------------------
 
-EXPECTED_MODEL_VERSION = "1.2"    
+EXPECTED_MODEL_VERSION = "1.3"
 _model_lock = threading.RLock()
 _model = None
 MODEL_LOADED = False
@@ -161,6 +176,10 @@ class Goal(db.Model):
 
 def format_indian_currency(amount):
     """Format a number in the Indian numbering system (lakhs / crores)."""
+    # Handle the sign separately so the digit grouping only sees positive numbers.
+    sign = '-' if amount < 0 else ''
+    amount = abs(amount)
+
     decimal_part = ""
     amount_str = str(float(amount))
     if '.' in amount_str:
@@ -168,7 +187,7 @@ def format_indian_currency(amount):
 
     s = str(int(amount))
     if len(s) <= 3:
-        return s + decimal_part
+        return sign + s + decimal_part
 
     s_rev = s[::-1]
     result = s_rev[:3]
@@ -177,7 +196,7 @@ def format_indian_currency(amount):
         result += ',' + s_rev[:2]
         s_rev = s_rev[2:]
 
-    return result[::-1] + decimal_part
+    return sign + result[::-1] + decimal_part
 
 
 app.jinja_env.filters['indian_currency'] = format_indian_currency
@@ -201,12 +220,19 @@ def predict_category(description, transaction_type='expense'):
 
     if loaded and pipeline and description:
         try:
-            prediction = pipeline.predict([description])[0]
-            proba = pipeline.predict_proba([description])[0]
+            # Only categories that belong to this transaction type are allowed.
+            allowed = INCOME_CATEGORIES if transaction_type == 'income' else EXPENSE_CATEGORIES
 
-            if any(p < 0 for p in proba):
-                raise ValueError("Negative predict_proba values detected -- check vectorizer config")
-            return prediction, round(float(max(proba)) * 100, 2)
+            probabilities = pipeline.predict_proba([description])[0]
+
+            # Rank every category the model knows, highest probability first.
+            ranked = sorted(zip(pipeline.classes_, probabilities),
+                            key=lambda pair: pair[1], reverse=True)
+
+            # Return the best-ranked category that is valid for this type.
+            for category, prob in ranked:
+                if category in allowed:
+                    return category, round(float(prob) * 100, 2)
         except Exception as exc:
             logger.warning("ML prediction error: %s. Falling back to rules.", exc)
 
@@ -463,6 +489,7 @@ def dashboard():
         savings_suggestion=savings_suggestion,
         goals=goals,
         model_loaded=MODEL_LOADED,
+        expense_categories=EXPENSE_CATEGORIES,
     )
 
 
@@ -580,8 +607,20 @@ def api_predict_category():
 @login_required
 def budgets():
     current_month = datetime.now().strftime('%Y-%m')
-    user_budgets = Budget.query.filter_by(user_id=current_user.id, month=current_month).all()
-    return render_template('budgets.html', budgets=user_budgets)
+    user_budgets  = Budget.query.filter_by(user_id=current_user.id, month=current_month).all()
+    spending      = get_category_spending(current_user.id, current_month)
+
+    # Build one row per budget with how much has been spent against it.
+    rows = []
+    for b in user_budgets:
+        spent = spending.get(b.category, 0)
+        rows.append({
+            'category': b.category,
+            'budget':   b.amount,
+            'spent':    spent,
+            'pct':      (spent / b.amount * 100) if b.amount > 0 else 0,
+        })
+    return render_template('budgets.html', rows=rows)
 
 
 @app.route('/add_budget', methods=['POST'])
