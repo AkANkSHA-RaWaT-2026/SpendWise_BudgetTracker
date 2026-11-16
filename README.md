@@ -42,7 +42,7 @@ A web-based budget tracking app with ML-powered transaction categorisation, buil
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/AkANkSHA-RaWaT-2026/spendwise.git
+https://github.com/AkANkSHA-RaWaT-2026/SpendWise_BudgetTracker.git
 cd spendwise
 ```
 
