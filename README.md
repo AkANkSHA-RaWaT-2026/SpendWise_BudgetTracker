@@ -43,7 +43,7 @@ A web-based budget tracking app with ML-powered transaction categorisation, buil
 
 ```bash
 https://github.com/AkANkSHA-RaWaT-2026/SpendWise_BudgetTracker.git
-cd spendwise
+cd SpendWise_BudgetTracker
 ```
 
 ### 2. Create a virtual environment
